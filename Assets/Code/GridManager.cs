@@ -1,0 +1,46 @@
+using UnityEngine;
+
+public class GridManager : MonoBehaviour
+{
+    [Header("Grid Setup (NES Full Stage)")]
+    public int width = 31;  // ความกว้างสนาม 31 ช่อง
+    public int height = 13; // ความสูงสนาม 13 ช่อง
+
+    [Header("Prefabs")]
+    public GameObject groundPrefab;
+    public GameObject hardWallPrefab;
+
+    void Start()
+    {
+        GenerateGrid();
+    }
+
+    void GenerateGrid()
+    {
+        float offsetX = -(width - 1) / 2f;
+        // ปรับ offsetY ลงมา -1.5f (เพิ่มพื้นที่ HUD ด้านบนอีก 1 ช่องเต็ม)
+        float offsetY = (-(height - 1) / 2f) - 1.5f;
+
+        for (int x = 0; x < width; x++)
+        {
+            for (int y = 0; y < height; y++)
+            {
+                Vector2 spawnPos = new Vector2(x + offsetX, y + offsetY);
+
+                // 1. วางพื้นสนามทุกช่อง
+                Instantiate(groundPrefab, spawnPos, Quaternion.identity, transform);
+
+                // 2. กำแพงขอบนอกสุด 4 ด้าน
+                bool isBorder = (x == 0 || x == width - 1 || y == 0 || y == height - 1);
+
+                // 3. เสาด้านใน (เว้นทางเดินขอบ 1 ช่องรอบทิศ)
+                bool isInnerHardWall = (x % 2 == 0 && y % 2 == 0) && !isBorder;
+
+                if (isBorder || isInnerHardWall)
+                {
+                    Instantiate(hardWallPrefab, spawnPos, Quaternion.identity, transform);
+                }
+            }
+        }
+    }
+}
