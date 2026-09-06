@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 5389999603111491265}
   - component: {fileID: 2412766912364433841}
   - component: {fileID: 1306635484342367351}
+  - component: {fileID: -6233470518201132678}
   m_Layer: 7
   m_Name: SoftBlock
   m_TagString: Untagged
@@ -160,3 +161,16 @@ MonoBehaviour:
   - {fileID: 8299092673500574438, guid: 8556df1823be909429725ff3946c545c, type: 3}
   - {fileID: 6176643797656153532, guid: 4113608d78daa4942a379baa3225c3bc, type: 3}
   - {fileID: 4472509824891260115, guid: 690216c2524958647bba3330c2119b95, type: 3}
+--- !u!114 &-6233470518201132678
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1918522451283889746}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c43a75cabade1fb46a316f6e52361d3e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ItemSpawner
+  exitDoorPrefab: {fileID: 1761862651938636506, guid: 68fd1336fdfe61247ab088a7df9235dd, type: 3}

@@ -9,6 +9,9 @@ public class BombermanController : MonoBehaviour
     public SpriteRenderer spriteRenderer;
     public Animator animator;
 
+    [Header("Power-Up Settings")]
+    public LayerMask softBlockLayer; // เลือก Layer ของ Soft Block ใน Inspector
+
     private Rigidbody2D rb;
     private Vector2 movement;
     private Vector2 lastDirection = Vector2.down; // จำทิศทางล่าสุดสำหรับ Idle
@@ -73,5 +76,31 @@ public class BombermanController : MonoBehaviour
     {
         // เคลื่อนที่ด้วย Rigidbody2D เพื่อให้ชนกับ Wall และ Block
         rb.MovePosition(rb.position + movement * moveSpeed * Time.fixedDeltaTime);
+    }
+
+    // เรียกฟังก์ชันนี้เมื่อเก็บไอเทม Wall Pass
+    public void EnableWallPass()
+    {
+        int playerLayer = gameObject.layer;
+        int softBlockLayerIndex = GetLayerFromMask(softBlockLayer);
+
+        if (softBlockLayerIndex >= 0 && softBlockLayerIndex <= 31)
+        {
+            Physics2D.IgnoreLayerCollision(playerLayer, softBlockLayerIndex, true);
+        }
+    }
+
+    private int GetLayerFromMask(LayerMask mask)
+    {
+        int layer = 0;
+        int layerValue = mask.value;
+        if (layerValue <= 0) return -1;
+
+        while (layerValue > 1)
+        {
+            layerValue >>= 1;
+            layer += 1;
+        }
+        return layer;
     }
 }

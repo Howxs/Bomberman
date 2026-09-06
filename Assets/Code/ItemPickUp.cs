@@ -48,11 +48,11 @@ public class ItemPickUp : MonoBehaviour
                 break;
 
             case ItemType.BombPass:
-                if (spawner != null) spawner.canPassBombs = true;
+                if (spawner != null) spawner.EnableBombPass();
                 break;
 
             case ItemType.WallPass:
-                if (controller != null) spawner.canPassWalls = true;
+                if (controller != null) controller.EnableWallPass();
                 break;
         }
     }
