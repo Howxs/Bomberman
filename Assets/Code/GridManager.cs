@@ -22,6 +22,7 @@ public class GridManager : MonoBehaviour
     {
         GenerateGrid();
         SpawnExitDoor();
+        SpawnEnemies();
     }
 
     void GenerateGrid()
@@ -76,6 +77,48 @@ public class GridManager : MonoBehaviour
             Vector2 exitPos = softBlockPositions[randomIndex];
 
             Instantiate(exitDoorPrefab, exitPos, Quaternion.identity, transform);
+        }
+    }
+
+    [Header("Enemy Setup")]
+    public GameObject enemyPrefab;
+    public int enemyCount = 3;
+
+    // เรียกใน Start() ต่อจาก SpawnExitDoor()
+    void SpawnEnemies()
+    {
+        List<Vector2> emptyPositions = new List<Vector2>();
+
+        float offsetX = -(width - 1) / 2f;
+        float offsetY = (-(height - 1) / 2f) - 1.5f;
+
+        for (int x = 0; x < width; x++)
+        {
+            for (int y = 0; y < height; y++)
+            {
+                // เว้นระยะ Safe Zone ให้ Player (มุมซ้ายล่าง x<=3, y<=3)
+                if (x <= 3 && y <= 3) continue;
+
+                Vector2 pos = new Vector2(x + offsetX, y + offsetY);
+
+                // เช็กว่าตรงช่องว่างนี้ไม่มี Wall หรือ Soft Block บังอยู่
+                Collider2D hit = Physics2D.OverlapBox(pos, new Vector2(0.8f, 0.8f), 0f);
+                if (hit == null)
+                {
+                    emptyPositions.Add(pos);
+                }
+            }
+        }
+
+        for (int i = 0; i < enemyCount; i++)
+        {
+            if (emptyPositions.Count == 0) break;
+
+            int randomIndex = Random.Range(0, emptyPositions.Count);
+            Vector2 spawnPos = emptyPositions[randomIndex];
+
+            Instantiate(enemyPrefab, spawnPos, Quaternion.identity, transform);
+            emptyPositions.RemoveAt(randomIndex);
         }
     }
 }

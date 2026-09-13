@@ -82,25 +82,18 @@ public class BombermanController : MonoBehaviour
     public void EnableWallPass()
     {
         int playerLayer = gameObject.layer;
-        int softBlockLayerIndex = GetLayerFromMask(softBlockLayer);
 
-        if (softBlockLayerIndex >= 0 && softBlockLayerIndex <= 31)
-        {
-            Physics2D.IgnoreLayerCollision(playerLayer, softBlockLayerIndex, true);
-        }
-    }
-
-    private int GetLayerFromMask(LayerMask mask)
-    {
-        int layer = 0;
-        int layerValue = mask.value;
-        if (layerValue <= 0) return -1;
+        // คำนวณหา Layer Index จาก LayerMask
+        int softBlockLayerIndex = 0;
+        int layerValue = softBlockLayer.value;
 
         while (layerValue > 1)
         {
             layerValue >>= 1;
-            layer += 1;
+            softBlockLayerIndex++;
         }
-        return layer;
+
+        // สั่งให้ระบบ Physics ปิดการชนกันระหว่าง Player กับ Soft Block
+        Physics2D.IgnoreLayerCollision(playerLayer, softBlockLayerIndex, true);
     }
 }

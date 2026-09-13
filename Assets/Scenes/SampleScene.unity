@@ -380,6 +380,8 @@ MonoBehaviour:
   softBlockPrefab: {fileID: 1918522451283889746, guid: 94c1fdc1ac7b3da4f97c14fa194ba165, type: 3}
   exitDoorPrefab: {fileID: 1761862651938636506, guid: 68fd1336fdfe61247ab088a7df9235dd, type: 3}
   softBlockChance: 0.1
+  enemyPrefab: {fileID: 227990733074519127, guid: 8a022830ae1fbcd4580543993388b34d, type: 3}
+  enemyCount: 3
 --- !u!4 &1017984154
 Transform:
   m_ObjectHideFlags: 0
