@@ -96,4 +96,17 @@ public class BombermanController : MonoBehaviour
         // สั่งให้ระบบ Physics ปิดการชนกันระหว่าง Player กับ Soft Block
         Physics2D.IgnoreLayerCollision(playerLayer, softBlockLayerIndex, true);
     }
+
+    private void OnTriggerEnter2D(Collider2D other)
+    {
+        // เมื่อผู้เล่นสัมผัสกับไฟระเบิด หรือ ศัตรู
+        if (other.CompareTag("Explosion") || other.CompareTag("Enemy"))
+        {
+            // สั่งให้ GameManager ประมวลผลการเสียชีวิต
+            if (GameManager.Instance != null)
+            {
+                GameManager.Instance.PlayerDied();
+            }
+        }
+    }
 }

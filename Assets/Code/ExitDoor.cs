@@ -10,6 +10,7 @@ public class ExitDoor : MonoBehaviour
 
             if (remainingEnemies.Length == 0)
             {
+                GameManager.Instance.StageClear();
                 Debug.Log("Stage Clear! All enemies defeated.");
             }
             else
