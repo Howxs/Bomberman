@@ -74,8 +74,11 @@ public class BombermanController : MonoBehaviour
 
     void FixedUpdate()
     {
-        // เคลื่อนที่ด้วย Rigidbody2D เพื่อให้ชนกับ Wall และ Block
-        rb.MovePosition(rb.position + movement * moveSpeed * Time.fixedDeltaTime);
+        // เคลื่อนที่ปกติด้วย Rigidbody2D
+        Vector2 targetPosition = rb.position + movement * moveSpeed * Time.fixedDeltaTime;
+
+        // หากต้องการเพิ่มความสมูทในการปัดมุม สามารถใช้ Rigidbody2D Slide หรือ Raycast ช่วยเช็กขอบบล็อก
+        rb.MovePosition(targetPosition);
     }
 
     // เรียกฟังก์ชันนี้เมื่อเก็บไอเทม Wall Pass
@@ -106,7 +109,12 @@ public class BombermanController : MonoBehaviour
             if (GameManager.Instance != null)
             {
                 GameManager.Instance.PlayerDied();
+                SoundManager.Instance.PlaySFX(SoundManager.Instance.playerDeathSFX);
             }
         }
     }
+
+
+
+
 }

@@ -24,6 +24,7 @@ public class BombSpawner : MonoBehaviour
         if (Input.GetKeyDown(dropKey) && currentBombCount < maxBombs)
         {
             DropBomb();
+            SoundManager.Instance.PlaySFX(SoundManager.Instance.bombLaySFX);
         }
 
         // กดปุ่ม E เพื่อจุดชนวนระเบิดแบบ Remote Control

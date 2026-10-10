@@ -36,6 +36,7 @@ public class BombLogic : MonoBehaviour
 
         // สร้างไฟระเบิดตรงกลาง
         Instantiate(explosionPrefab, transform.position, Quaternion.identity);
+        SoundManager.Instance.PlaySFX(SoundManager.Instance.bombExplosionSFX);
 
         // กระจายไฟปะทุ 4 ทิศทางตาม explosionRadius
         ExplodeInDirection(Vector2.up);

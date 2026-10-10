@@ -130,6 +130,9 @@ public class GameManager : MonoBehaviour
             stageClearPanel.SetActive(true);
         }
         Debug.Log("STAGE CLEAR! Next: Stage " + (currentStage + 1));
+        SoundManager.Instance.PlaySFX(SoundManager.Instance.stageClearSFX);
+        // สั่งเปลี่ยนกลับมาเล่นเพลงหลักของด่านถัดไป
+        SoundManager.Instance.PlayMusic(SoundManager.Instance.stageBGM);
     }
 
     private void GameOver()
@@ -142,10 +145,24 @@ public class GameManager : MonoBehaviour
             gameOverPanel.SetActive(true);
         }
         Debug.Log("GAME OVER");
+        // ตัวอย่างเมื่อผู้เล่นตายครบทุกชีวิต และเกมกำลังจะเข้าสู่หน้าจอ Game Over ใน GameManager.cs
+        if (SoundManager.Instance != null)
+        {
+            // 1. หยุดเพลง BGM หลักที่กำลังเล่นอยู่
+            SoundManager.Instance.StopMusic();
+
+            // 2. เล่นเสียง Game Over
+            SoundManager.Instance.PlaySFX(SoundManager.Instance.gameOverSFX);
+        }
     }
 
     public void RestartGame()
     {
+        // 1. สั่งหยุดเสียง Game Over และเสียงอื่นๆ ทั้งหมดทันที
+        if (SoundManager.Instance != null)
+        {
+            SoundManager.Instance.StopAllAudio();
+        }
         // 1. คืนค่าเวลาให้เกมกลับมารันตามปกติ
         Time.timeScale = 1f;
 
@@ -156,6 +173,12 @@ public class GameManager : MonoBehaviour
 
         // 3. โหลด Scene ใหม่
         SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+
+        if (SoundManager.Instance != null)
+        {
+            SoundManager.Instance.PlayMainStageBGM();
+        }
+
     }
 
     private void UpdateUI()

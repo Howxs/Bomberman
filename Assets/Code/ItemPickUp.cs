@@ -21,6 +21,12 @@ public class ItemPickUp : MonoBehaviour
         {
             ApplyEffect(other.gameObject);
             Destroy(gameObject);
+
+            // ** เพิ่มบรรทัดนี้ เพื่อสั่งให้ SoundManager เล่นเสียงและเปลี่ยนเพลง **
+            if (SoundManager.Instance != null)
+            {
+                SoundManager.Instance.OnCollectPowerUp();
+            }
         }
     }
 
@@ -56,4 +62,6 @@ public class ItemPickUp : MonoBehaviour
                 break;
         }
     }
+
+
 }
