@@ -1,9 +1,17 @@
 using UnityEngine;
 
+[RequireComponent(typeof(Rigidbody2D))]
+[RequireComponent(typeof(BombSpawner))] // มั่นใจว่ามี BombSpawner อยู่ที่ตัวเดียวกัน
 public class BombermanController : MonoBehaviour
 {
     [Header("Movement Settings")]
     public float moveSpeed = 4f;
+    public LayerMask obstacleLayer; // เลือก Layer ของสิ่งกีดขวางทั้งหมด (Hard Wall, Soft Block, Bomb)
+
+    [Header("Corner Correction Settings")]
+    public float rayOffset = 0.25f;     // ระยะห่างของ Raycast ซ้าย-ขวา/บน-ล่าง
+    public float rayLength = 0.4f;      // ความยาวในการตรวจจับขอบมุม
+    public float cornerSlideSpeed = 2.5f; // ความเร็วสไลด์เข้ามุม
 
     [Header("Components")]
     public SpriteRenderer spriteRenderer;
@@ -12,7 +20,12 @@ public class BombermanController : MonoBehaviour
     [Header("Power-Up Settings")]
     public LayerMask softBlockLayer; // เลือก Layer ของ Soft Block ใน Inspector
 
+    [Header("Footstep Settings")]
+    public float footstepCooldown = 0.3f; // ระยะเวลาหน่วงขั้นต่ำระหว่างเสียงก้าวเท้า (วินาที)
+    private float lastFootstepTime;
+
     private Rigidbody2D rb;
+    private BombSpawner bombSpawner;
     private Vector2 movement;
     private Vector2 lastDirection = Vector2.down; // จำทิศทางล่าสุดสำหรับ Idle
     private bool isDead = false; // ป้องกันการเรียกฟังก์ชันตายซ้ำซ้อน
@@ -20,6 +33,7 @@ public class BombermanController : MonoBehaviour
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
+        bombSpawner = GetComponent<BombSpawner>();
         if (spriteRenderer == null) spriteRenderer = GetComponent<SpriteRenderer>();
         if (animator == null) animator = GetComponent<Animator>();
     }
@@ -33,11 +47,11 @@ public class BombermanController : MonoBehaviour
         float inputY = Input.GetAxisRaw("Vertical");
 
         // 2. ล็อกไม่ให้เดินเฉียง (เดินได้ทีละแกนสไตล์ NES)
-        if (inputX != 0)
+        if (Mathf.Abs(inputX) > 0.1f)
         {
             movement = new Vector2(inputX, 0);
         }
-        else if (inputY != 0)
+        else if (Mathf.Abs(inputY) > 0.1f)
         {
             movement = new Vector2(0, inputY);
         }
@@ -73,34 +87,83 @@ public class BombermanController : MonoBehaviour
         {
             spriteRenderer.flipX = false;
         }
+
+        // หมายเหตุ: ระบบวางระเบิด (Drop Key) และจุดชนวน (Detonate Key) 
+        // ถูกจัดการไว้ในสคริปต์ BombSpawner ที่อยู่บนตัวผู้เล่นเรียบร้อยแล้วใน Update ของมันเองครับ
     }
 
     void FixedUpdate()
     {
         if (isDead) return;
 
-        // เคลื่อนที่ปกติด้วย Rigidbody2D
-        Vector2 targetPosition = rb.position + movement * moveSpeed * Time.fixedDeltaTime;
-        rb.MovePosition(targetPosition);
+        // เคลื่อนที่ด้วย Rigidbody2D + ระบบ Corner Correction ช่วยเลื่อนเข้ามุม
+        if (movement != Vector2.zero)
+        {
+            Vector2 adjustedMove = ApplyCornerCorrection(movement);
+            Vector2 targetPosition = rb.position + adjustedMove * moveSpeed * Time.fixedDeltaTime;
+            rb.MovePosition(targetPosition);
+        }
+        else
+        {
+            rb.linearVelocity = Vector2.zero;
+        }
     }
 
-    [Header("Footstep Settings")]
-    public float footstepCooldown = 0.3f; // ระยะเวลาหน่วงขั้นต่ำระหว่างเสียงก้าวเท้า (วินาที)
-    private float lastFootstepTime;
+    // --- ระบบ Corner Correction (ช่วยเลื่อนเข้ามุมเมื่อเดินติดเหลี่ยม) ---
+    private Vector2 ApplyCornerCorrection(Vector2 inputDir)
+    {
+        Vector2 pos = rb.position;
+
+        // เช็กการเดินแนวนอน (ซ้าย/ขวา)
+        if (inputDir.x != 0)
+        {
+            Vector2 topRayOrigin = pos + new Vector2(0, rayOffset);
+            Vector2 bottomRayOrigin = pos + new Vector2(0, -rayOffset);
+
+            bool topHit = Physics2D.Raycast(topRayOrigin, new Vector2(inputDir.x, 0), rayLength, obstacleLayer);
+            bool bottomHit = Physics2D.Raycast(bottomRayOrigin, new Vector2(inputDir.x, 0), rayLength, obstacleLayer);
+
+            if (topHit && !bottomHit)
+            {
+                return new Vector2(inputDir.x, -1f * cornerSlideSpeed).normalized;
+            }
+            else if (!topHit && bottomHit)
+            {
+                return new Vector2(inputDir.x, 1f * cornerSlideSpeed).normalized;
+            }
+        }
+        // เช็กการเดินแนวตั้ง (ขึ้น/ลง)
+        else if (inputDir.y != 0)
+        {
+            Vector2 leftRayOrigin = pos + new Vector2(-rayOffset, 0);
+            Vector2 rightRayOrigin = pos + new Vector2(rayOffset, 0);
+
+            bool leftHit = Physics2D.Raycast(leftRayOrigin, new Vector2(0, inputDir.y), rayLength, obstacleLayer);
+            bool rightHit = Physics2D.Raycast(rightRayOrigin, new Vector2(0, inputDir.y), rayLength, obstacleLayer);
+
+            if (leftHit && !rightHit)
+            {
+                return new Vector2(1f * cornerSlideSpeed, inputDir.y).normalized;
+            }
+            else if (!leftHit && rightHit)
+            {
+                return new Vector2(-1f * cornerSlideSpeed, inputDir.y).normalized;
+            }
+        }
+
+        return inputDir;
+    }
 
     // ฟังก์ชันนี้ถูกเรียกโดย Animation Event ในจังหวะก้าวเท้า
     public void PlayFootstepSound()
     {
         if (SoundManager.Instance == null) return;
 
-        // เช็กเวลาว่าผ่านไปถึงกำหนดหรือยัง (ป้องกันเสียงรัวเกินไป)
         if (Time.time - lastFootstepTime < footstepCooldown) return;
         lastFootstepTime = Time.time;
 
-        // เช็กว่ากำลังเดินแนวตั้ง (ขึ้น/ลง) หรือแนวนอน (ซ้าย/ขวา) มากกว่ากัน
         if (Mathf.Abs(lastDirection.y) > Mathf.Abs(lastDirection.x))
         {
-            // เดินแนวตั้ง (ใช้เสียง step_vertical)
             if (SoundManager.Instance.stepVerticalSFX != null)
             {
                 SoundManager.Instance.PlaySFX(SoundManager.Instance.stepVerticalSFX);
@@ -108,7 +171,6 @@ public class BombermanController : MonoBehaviour
         }
         else
         {
-            // เดินแนวนอน (ใช้เสียง step_horizontal)
             if (SoundManager.Instance.stepHorizontalSFX != null)
             {
                 SoundManager.Instance.PlaySFX(SoundManager.Instance.stepHorizontalSFX);
@@ -121,7 +183,6 @@ public class BombermanController : MonoBehaviour
     {
         int playerLayer = gameObject.layer;
 
-        // คำนวณหา Layer Index จาก LayerMask
         int softBlockLayerIndex = 0;
         int layerValue = softBlockLayer.value;
 
@@ -131,7 +192,6 @@ public class BombermanController : MonoBehaviour
             softBlockLayerIndex++;
         }
 
-        // สั่งให้ระบบ Physics ปิดการชนกันระหว่าง Player กับ Soft Block
         Physics2D.IgnoreLayerCollision(playerLayer, softBlockLayerIndex, true);
     }
 
@@ -139,7 +199,6 @@ public class BombermanController : MonoBehaviour
     {
         if (isDead) return;
 
-        // เมื่อผู้เล่นสัมผัสกับไฟระเบิด หรือ ศัตรู
         if (other.CompareTag("Explosion") || other.CompareTag("Enemy"))
         {
             Die();
@@ -152,27 +211,23 @@ public class BombermanController : MonoBehaviour
         if (isDead) return;
         isDead = true;
 
-        // 1. หยุดการเคลื่อนที่
         movement = Vector2.zero;
         if (rb != null)
         {
             rb.linearVelocity = Vector2.zero;
-            rb.simulated = false; // ปิดระบบฟิสิกส์ไม่ให้ชนซ้ำ
+            rb.simulated = false;
         }
 
-        // 2. เล่นแอนิเมชันตาย
         if (animator != null)
         {
             animator.SetTrigger("Die");
         }
 
-        // 3. เล่นเสียงตาย[cite: 10]
         if (SoundManager.Instance != null)
         {
             SoundManager.Instance.PlaySFX(SoundManager.Instance.playerDeathSFX);
         }
 
-        // 4. แจ้งให้ GameManager จัดการรีเซ็ตฉากหรือลดชีวิตต่อทันที
         if (GameManager.Instance != null)
         {
             GameManager.Instance.PlayerDied();

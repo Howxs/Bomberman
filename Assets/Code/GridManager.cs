@@ -54,8 +54,9 @@ public class GridManager : MonoBehaviour
                 }
                 else
                 {
-                    // 4. เว้นพื้นที่ปลอดภัยให้ Player จุดเกิด (มุมซ้ายล่าง: x=1,2 และ y=1,2)
-                    bool isPlayerSafeZone = (x <= 2 && y <= 2);
+                    // [แก้ไขจุดสำคัญ] ขยายพื้นที่ปลอดภัยให้ Player (มุมซ้ายล่าง) 
+                    // ป้องกันไม่ให้ Soft Block มาปิดทางเดินออก (เว้นช่อง x=1,2,3 และ y=1,2,3 ไว้ให้มีทางเดินโล่งๆ)
+                    bool isPlayerSafeZone = (x <= 3 && y <= 1) || (x <= 1 && y <= 3) || (x == 2 && y == 2);
 
                     if (!isPlayerSafeZone)
                     {
@@ -102,8 +103,9 @@ public class GridManager : MonoBehaviour
         {
             for (int y = 0; y < height; y++)
             {
-                // เว้นระยะ Safe Zone ให้ Player (มุมซ้ายล่าง x<=3, y<=3)
-                if (x <= 3 && y <= 3) continue;
+                // [แก้ไขจุดสำคัญ] ขยายระยะ Safe Zone ตอนสุ่มเกิดศัตรู (ห้ามเกิดในโซน x <= 5 และ y <= 5 ตอนเริ่มเกม)
+                // เพื่อไม่ให้ศัตรูเกิดใกล้ตัวผู้เล่นเกินไปหรือเกิดทับ
+                if (x <= 5 && y <= 5) continue;
 
                 Vector2 pos = new Vector2(x + offsetX, y + offsetY);
 
