@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using TMPro;
 using UnityEngine.SceneManagement;
 using System.Collections;
@@ -9,9 +9,9 @@ public class GameManager : MonoBehaviour
 
     [Header("Game Settings")]
     public int maxLives = 3;
-    public float stageTime = 200f; // ���Ҷ����ѧ (�Թҷ�)
+    public float stageTime = 200f; // เวลาถอยหลัง (วินาที)
 
-    // �� static �������Ӥ�Ң������ LoadScene ��
+    // ใช้ static เพื่อให้จำค่าข้ามการ LoadScene ได้
     public static int currentStage = 1;
     private static int currentLives = 3;
     private static int currentScore = 0;
@@ -44,7 +44,7 @@ public class GameManager : MonoBehaviour
 
     void Start()
     {
-        // ��˹����Ҷ����ѧ��ШӴ�ҹ
+        // กำหนดเวลาถอยหลังประจำด่าน
         timeRemaining = stageTime;
 
         playerObj = GameObject.FindWithTag("Player");
@@ -63,7 +63,7 @@ public class GameManager : MonoBehaviour
     {
         if (isGameOver) return;
 
-        // �Ѻ���Ҷ����ѧ
+        // นับเวลาถอยหลัง
         if (timeRemaining > 0)
         {
             timeRemaining -= Time.deltaTime;
@@ -73,7 +73,7 @@ public class GameManager : MonoBehaviour
         {
             timeRemaining = 0;
             UpdateUI();
-            PlayerDied(); // ������� = ���������ª��Ե
+            PlayerDied(); // เวลาหมด = ผู้เล่นเสียชีวิต
         }
     }
 
@@ -102,88 +102,145 @@ public class GameManager : MonoBehaviour
 
     private IEnumerator RespawnPlayerRoutine()
     {
-        // 1. ������͹����ѹ��� (Die) ������§��蹨���͹ (�� �� 1.0 ���� 1.2 �Թҷ�)
+        // 1. รอให้แอนิเมชันตาย (Die) และเสียงเล่นจบก่อน (เช่น รอ 1.2 วินาที)
         yield return new WaitForSeconds(1.2f);
 
-        // 2. ��ѧ�ҡ�͹����ѹ��蹨����Ǥ��«�͹����Ф� (��ҵ�ͧ���)
+        // 2. หลังจากแอนิเมชันเล่นจบแล้วค่อยซ่อนตัวละคร
         if (playerObj != null)
         {
             playerObj.SetActive(false);
         }
 
-        // 3. ˹�ǧ����ա�Դ��͹��Ŵ�ҡ���� (��ҵ�ͧ���)
+        // 3. หน่วงต่ออีกนิดก่อนโหลดฉากใหม่
         yield return new WaitForSeconds(0.3f);
 
-        // ��Ŵ Scene �Ѩ�غѹ����������������絺��͡ �ѵ�� ��е��˹觼�����
+        // โหลด Scene ปัจจุบันขึ้นมาใหม่เพื่อรีเซ็ตบล็อก ศัตรู และตำแหน่งผู้เล่น
         SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
     }
 
-    public void StageClear()
+    // ฟังก์ชันเรียกเคลียร์ด่าน
+    public void CallStageClear()
     {
         if (isGameOver) return;
+        StartCoroutine(StageClearRoutine());
+    }
 
+    // Coroutine ควบคุมการแสดงผล เสียง และหน่วงเวลา 2 รอบ
+    private IEnumerator StageClearRoutine()
+    {
+        if (isGameOver) yield break;
         isGameOver = true;
-        Time.timeScale = 0f; // ��ش��
+        Time.timeScale = 0f; // หยุดเกม
 
         if (stageClearText != null)
         {
             stageClearText.text = "STAGE " + (currentStage + 1);
         }
 
+        
+
+        if (SoundManager.Instance != null)
+        {
+            // หยุดเพลงเดิม และเล่นเสียง Stage Clear รอบเดียวจบ
+            SoundManager.Instance.StopMusic();
+            SoundManager.Instance.PlaySFX(SoundManager.Instance.stageClearSFX);
+        }
+
+        // 🔄 รอบที่ 1: หน่วงเวลา 2 วินาที (ให้เสียง Stage Clear เล่น)
+        yield return new WaitForSecondsRealtime(3f);
+
+        // 🔄 รอบที่ 2: หน่วงเวลาต่ออีก 1 วินาทีก่อนโหลดด่านถัดไป
+        SoundManager.Instance.PlaySFX(SoundManager.Instance.stageStartSFX);
+        
+        // เปิด Panel ทันที
         if (stageClearPanel != null)
         {
             stageClearPanel.SetActive(true);
         }
         Debug.Log("STAGE CLEAR! Next: Stage " + (currentStage + 1));
-        SoundManager.Instance.PlaySFX(SoundManager.Instance.stageClearSFX);
-        // �������¹��Ѻ������ŧ��ѡ�ͧ��ҹ�Ѵ�
-        SoundManager.Instance.PlayMusic(SoundManager.Instance.stageBGM);
+        yield return new WaitForSecondsRealtime(3f);
+
+        // 1. โหลดด่านถัดไป
+        LoadNextStage();
+
+        // 2. สั่งให้ SoundManager เล่นเพลงหลักของด่านใหม่
+        if (SoundManager.Instance != null)
+        {
+            SoundManager.Instance.PlayMainStageBGM();
+        }
+    }
+
+    // รองรับสคริปต์อื่นที่เรียกใช้ฟังก์ชันนี้ตรงๆ
+    public void StageClear()
+    {
+        CallStageClear();
+    }
+
+    public void LoadNextStage()
+    {
+        // 1. คืนค่า Time.timeScale ให้เกมเดินต่อปกติ
+        Time.timeScale = 1f;
+
+        // 2. เพิ่มค่าด่านปัจจุบันขึ้น 1
+        currentStage++;
+
+        // 3. บันทึกด่านสูงสุดที่ปลดล็อกลง SaveManager
+        SaveManager.UnlockStage(currentStage);
+
+        // 4. โหลด Scene ถัดไป (เช่น Stage2, Stage3 ตามหมายเลข)
+        string nextSceneName = "Stage" + currentStage;
+
+        // เช็คว่ามี Scene นี้อยู่จริงไหมก่อนโหลด
+        if (Application.CanStreamedLevelBeLoaded(nextSceneName))
+        {
+            SceneManager.LoadScene(nextSceneName);
+        }
+        else
+        {
+            Debug.LogWarning("ไม่พบ Scene ชื่อ " + nextSceneName + " อาจจะเป็นด่านสุดท้ายแล้ว!");
+            SceneManager.LoadScene("MainMenu"); // ถ้าหมดด่านแล้วให้กลับหน้าเมนูหลัก
+        }
     }
 
     private void GameOver()
     {
         isGameOver = true;
-        Time.timeScale = 0f; // ��ش��
+        Time.timeScale = 0f; // หยุดเกม
+
+        // สั่งบันทึกคะแนนสูงสุดทันทีที่ Game Over
+        SaveManager.SaveHighScore(currentScore);
 
         if (gameOverPanel != null)
         {
             gameOverPanel.SetActive(true);
         }
-        Debug.Log("GAME OVER");
-        // ������ҧ����ͼ����蹵�¤ú�ء���Ե ��������ѧ��������˹�Ҩ� Game Over � GameManager.cs
+        Debug.Log("GAME OVER - Final Score saved: " + currentScore);
+
         if (SoundManager.Instance != null)
         {
-            // 1. ��ش�ŧ BGM ��ѡ�����ѧ�������
             SoundManager.Instance.StopMusic();
-
-            // 2. ������§ Game Over
             SoundManager.Instance.PlaySFX(SoundManager.Instance.gameOverSFX);
         }
     }
 
     public void RestartGame()
     {
-        // 1. �����ش���§ Game Over ������§���� �������ѹ��
         if (SoundManager.Instance != null)
         {
             SoundManager.Instance.StopAllAudio();
         }
-        // 1. �׹��������������Ѻ���ѹ�������
         Time.timeScale = 1f;
 
-        // 2. ���絤�� static �����������������
         currentLives = maxLives;
         currentScore = 0;
         currentStage = 1;
 
-        // 3. ��Ŵ Scene ����
         SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
 
         if (SoundManager.Instance != null)
         {
             SoundManager.Instance.PlayMainStageBGM();
         }
-
     }
 
     private void UpdateUI()

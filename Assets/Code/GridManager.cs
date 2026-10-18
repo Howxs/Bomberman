@@ -1,25 +1,48 @@
-using UnityEngine;
+๏ปฟusing UnityEngine;
 using System.Collections.Generic;
+
+[System.Serializable]
+public class EnemySpawnData
+{
+    public string enemyName = "Enemy";
+    public GameObject enemyPrefab;
+    public int count = 1;
+}
 
 public class GridManager : MonoBehaviour
 {
+    public static GridManager Instance { get; private set; }
+
     [Header("Grid Setup (NES Full Stage)")]
-    public int width = 31;  // ความกว้างสนาม 31 ช่อง
-    public int height = 13; // ความสูงสนาม 13 ช่อง
+    public int width = 31;
+    public int height = 13;
 
     [Header("Prefabs")]
     public GameObject groundPrefab;
     public GameObject hardWallPrefab;
-
-    // [แก้ไขจุดที่ 1] เปลี่ยนจาก Soft Block เดี่ยว เป็น List หรือ Array เพื่อให้ใส่ได้หลายรูป/หลายแบบ
     public List<GameObject> softBlockPrefabs;
-
     public GameObject exitDoorPrefab;
 
     [Header("Soft Block Settings")]
-    [Range(0f, 1f)] public float softBlockChance = 0.6f; // โอกาสเกิด Soft Block (60%)
+    [Range(0f, 1f)] public float softBlockChance = 0.6f;
+
+    [Header("Enemy Setup (เธ•เธฑเนเธเธเนเธฒเธจเธฑเธ•เธฃเธนเธชเธณเธซเธฃเธฑเธ Scene เธเธตเน)")]
+    // ๐ฏ เนเธชเนเธฃเธฒเธขเธเธทเนเธญเนเธฅเธฐเธเธณเธเธงเธเธจเธฑเธ•เธฃเธนเธ—เธตเนเธเธฐเน€เธเธดเธ”เนเธเธ”เนเธฒเธเธเธตเนเนเธ”เนเน€เธฅเธขเธ—เธฑเธเธ—เธตเนเธ Inspector
+    public List<EnemySpawnData> enemyList = new List<EnemySpawnData>();
 
     private List<Vector2> softBlockPositions = new List<Vector2>();
+
+    void Awake()
+    {
+        if (Instance == null)
+        {
+            Instance = this;
+        }
+        else
+        {
+            Destroy(gameObject);
+        }
+    }
 
     void Start()
     {
@@ -39,13 +62,9 @@ public class GridManager : MonoBehaviour
             {
                 Vector2 spawnPos = new Vector2(x + offsetX, y + offsetY);
 
-                // 1. วางพื้นสนามทุกช่อง
                 Instantiate(groundPrefab, spawnPos, Quaternion.identity, transform);
 
-                // 2. กำแพงขอบนอกสุด 4 ด้าน
                 bool isBorder = (x == 0 || x == width - 1 || y == 0 || y == height - 1);
-
-                // 3. เสาด้านใน (เว้นทางเดินขอบ 1 ช่องรอบทิศ)
                 bool isInnerHardWall = (x % 2 == 0 && y % 2 == 0) && !isBorder;
 
                 if (isBorder || isInnerHardWall)
@@ -54,21 +73,17 @@ public class GridManager : MonoBehaviour
                 }
                 else
                 {
-                    // [แก้ไขจุดสำคัญ] ขยายพื้นที่ปลอดภัยให้ Player (มุมซ้ายล่าง) 
-                    // ป้องกันไม่ให้ Soft Block มาปิดทางเดินออก (เว้นช่อง x=1,2,3 และ y=1,2,3 ไว้ให้มีทางเดินโล่งๆ)
                     bool isPlayerSafeZone = (x <= 3 && y <= 1) || (x <= 1 && y <= 3) || (x == 2 && y == 2);
 
                     if (!isPlayerSafeZone)
                     {
-                        // 5. สุ่มวาง Soft Block (และต้องมี Prefab ใน List อย่างน้อย 1 อัน)
                         if (Random.value < softBlockChance && softBlockPrefabs != null && softBlockPrefabs.Count > 0)
                         {
-                            // [แก้ไขจุดที่ 2] สุ่มหยิบ Soft Block จากใน List มาสร้าง
                             int randomStyleIndex = Random.Range(0, softBlockPrefabs.Count);
                             GameObject selectedSoftBlock = softBlockPrefabs[randomStyleIndex];
 
                             Instantiate(selectedSoftBlock, spawnPos, Quaternion.identity, transform);
-                            softBlockPositions.Add(spawnPos); // บันทึกตำแหน่งไว้ซ่อนประตู Exit
+                            softBlockPositions.Add(spawnPos);
                         }
                     }
                 }
@@ -78,7 +93,6 @@ public class GridManager : MonoBehaviour
 
     void SpawnExitDoor()
     {
-        // สุ่มเลือกตำแหน่ง Soft Block 1 จุดเพื่อวางประตู Exit ซ่อนไว้ด้านใต้
         if (softBlockPositions.Count > 0 && exitDoorPrefab != null)
         {
             int randomIndex = Random.Range(0, softBlockPositions.Count);
@@ -87,10 +101,6 @@ public class GridManager : MonoBehaviour
             Instantiate(exitDoorPrefab, exitPos, Quaternion.identity, transform);
         }
     }
-
-    [Header("Enemy Setup")]
-    public GameObject enemyPrefab;
-    public int enemyCount = 3;
 
     void SpawnEnemies()
     {
@@ -103,13 +113,10 @@ public class GridManager : MonoBehaviour
         {
             for (int y = 0; y < height; y++)
             {
-                // [แก้ไขจุดสำคัญ] ขยายระยะ Safe Zone ตอนสุ่มเกิดศัตรู (ห้ามเกิดในโซน x <= 5 และ y <= 5 ตอนเริ่มเกม)
-                // เพื่อไม่ให้ศัตรูเกิดใกล้ตัวผู้เล่นเกินไปหรือเกิดทับ
                 if (x <= 5 && y <= 5) continue;
 
                 Vector2 pos = new Vector2(x + offsetX, y + offsetY);
 
-                // เช็กว่าตรงช่องว่างนี้ไม่มี Wall หรือ Soft Block บังอยู่
                 Collider2D hit = Physics2D.OverlapBox(pos, new Vector2(0.8f, 0.8f), 0f);
                 if (hit == null)
                 {
@@ -118,15 +125,21 @@ public class GridManager : MonoBehaviour
             }
         }
 
-        for (int i = 0; i < enemyCount; i++)
+        // เธงเธเธฅเธนเธเธชเธเธฒเธงเธเนเธจเธฑเธ•เธฃเธนเธ•เธฒเธกเธฃเธฒเธขเธเธทเนเธญเนเธ Inspector เธเธญเธ Scene เธเธตเน
+        foreach (EnemySpawnData enemyData in enemyList)
         {
-            if (emptyPositions.Count == 0) break;
+            if (enemyData.enemyPrefab == null) continue;
 
-            int randomIndex = Random.Range(0, emptyPositions.Count);
-            Vector2 spawnPos = emptyPositions[randomIndex];
+            for (int i = 0; i < enemyData.count; i++)
+            {
+                if (emptyPositions.Count == 0) break;
 
-            Instantiate(enemyPrefab, spawnPos, Quaternion.identity, transform);
-            emptyPositions.RemoveAt(randomIndex);
+                int randomIndex = Random.Range(0, emptyPositions.Count);
+                Vector2 spawnPos = emptyPositions[randomIndex];
+
+                Instantiate(enemyData.enemyPrefab, spawnPos, Quaternion.identity, transform);
+                emptyPositions.RemoveAt(randomIndex);
+            }
         }
     }
 }

@@ -1,17 +1,17 @@
-using UnityEngine;
+﻿using UnityEngine;
 using System.Collections;
 
 public class ExitDoor : MonoBehaviour
 {
     [Header("Sprite Settings")]
-    public Sprite closedSprite;                 // �Ҿ�͹��е��ѧ�Դ����
-    public Sprite[] openAnimationSprites;       // �Ҿ͹����ѹ�͹��е��Դ���� (��Ѻǹ�ٻ��������)
-    public float animationSpeed = 0.2f;         // ��������㹡������¹�Ҿ
+    public Sprite closedSprite;                 // ภาพตอนประตูยังปิดอยู่
+    public Sprite[] openAnimationSprites;      // ภาพอนิเมชันตอนประตูเปิดแล้ว (สลับวนลูปไปเรื่อยๆ)
+    public float animationSpeed = 0.2f;         // ความเร็วในการเปลี่ยนภาพ
 
     [Header("Penalty Settings")]
-    [SerializeField] private GameObject enemyPrefab; // Prefab �ѵ�ٷ����ʡ����ͻ�е�ⴹ�
-    [SerializeField] private int enemiesToSpawn = 1;   // �ӹǹ�ѵ�ٷ����ʡ
-    [SerializeField] private float spawnDelay = 1.0f;  // ˹�ǧ���� 1 �Թҷա�͹�ѵ���Դ
+    [SerializeField] private GameObject enemyPrefab; // Prefab ศัตรูที่จะเสกเมื่อประตูโดนไฟ
+    [SerializeField] private int enemiesToSpawn = 1;   // จำนวนศัตรูที่จะเสก
+    [SerializeField] private float spawnDelay = 1.0f;  // หน่วงเวลา 1 วินาทีก่อนศัตรูเกิด
 
     private SpriteRenderer spriteRenderer;
     private Collider2D doorCollider;
@@ -26,7 +26,7 @@ public class ExitDoor : MonoBehaviour
         spriteRenderer = GetComponent<SpriteRenderer>();
         doorCollider = GetComponent<Collider2D>();
 
-        // �������: �Դ��е�����͹
+        // เริ่มต้น: ปิดประตูไว้ก่อน
         if (spriteRenderer != null && closedSprite != null)
         {
             spriteRenderer.sprite = closedSprite;
@@ -34,13 +34,20 @@ public class ExitDoor : MonoBehaviour
 
         if (doorCollider != null)
         {
-            doorCollider.enabled = false; // �ѧ�Թ��������͹�ѧ����Դ
+            doorCollider.enabled = false; // ยังเดินเข้าไม่ได้ตอนยังไม่เปิด
         }
     }
 
     void Update()
     {
-        // ������ѵ������ҡ�����ѧ�ء� ���
+        // 🎯 [ระบบโกง] กดปุ่ม G เพื่อบังคับเปิดประตูทันทีสำหรับเทสระบบ
+        if (Input.GetKeyDown(KeyCode.G) && !isOpen)
+        {
+            Debug.Log("Cheat Activated: Force Opening Exit Door!");
+            OpenDoor();
+        }
+
+        // เช็คว่าศัตรูหมดฉากหรือยังทุกๆ เฟรม (ถ้ายังไม่เปิด)
         if (!isOpen)
         {
             int totalEnemies = FindObjectsByType<EnemyMovement>(FindObjectsSortMode.None).Length +
@@ -54,21 +61,21 @@ public class ExitDoor : MonoBehaviour
         }
         else
         {
-            // ��һ�е��Դ���� ������͹����ѹ��Ѻ�Ҿǹ�ٻ�������� Ẻʤ�Ի���ѵ��
+            // ถ้าประตูเปิดแล้ว ให้เล่นอนิเมชันสลับภาพวนลูปไปเรื่อยๆ
             PlayOpenAnimation();
         }
     }
 
-    private void OpenDoor()
+    public void OpenDoor()
     {
         isOpen = true;
 
         if (doorCollider != null)
         {
-            doorCollider.enabled = true; // �Դ���������Թ��/��һ�е���
+            doorCollider.enabled = true; // เปิดให้ผู้เล่นเดินชน/เข้าประตูได้
         }
 
-        Debug.Log("�ѵ���������! ��е��Դ�͡�����������͹����ѹ");
+        Debug.Log("ประตูเปิดออกแล้ว! สามารถเดินเข้าเพื่อเคลียร์ด่านได้");
     }
 
     private void PlayOpenAnimation()
@@ -86,7 +93,7 @@ public class ExitDoor : MonoBehaviour
 
     private void OnTriggerEnter2D(Collider2D other)
     {
-        // 1. ���ⴹ����Դ (��л�е��Դ��������ⴹ�͹��͹����)
+        // 1. ถ้าโดนไฟระเบิด
         if (other.CompareTag("Explosion") && !hasTriggeredPenalty)
         {
             hasTriggeredPenalty = true;
@@ -94,9 +101,18 @@ public class ExitDoor : MonoBehaviour
             return;
         }
 
-        // 2. �������Թ��һ�е� (��ͧ�Դ������ҹ�鹶֧�м�ҹ��ҹ��)
+        // 2. ผู้เล่นเดินเข้าประตู (ต้องเปิดแล้วเท่านั้นถึงจะผ่านด่านได้)
         if (other.CompareTag("Player") && isOpen)
         {
+            // 🎯 สั่งจัดการเสียงเมื่อผ่านด่าน
+            if (SoundManager.Instance != null)
+            {
+                // หยุดเพลงประกอบฉากทั้งหมดทันที
+                SoundManager.Instance.StopMusic();
+                // เล่นเสียง Stage Clear เพียงเสียงเดียว
+                SoundManager.Instance.PlaySFX(SoundManager.Instance.stageClearSFX);
+            }
+
             if (GameManager.Instance != null)
             {
                 GameManager.Instance.StageClear();
