@@ -181,6 +181,14 @@ public class GameManager : MonoBehaviour
         // 1. คืนค่า Time.timeScale ให้เกมเดินต่อปกติ
         Time.timeScale = 1f;
 
+        // 🎯 [จุดที่เพิ่ม] เช็คก่อนว่าถ้าตอนนี้อยู่ด่าน 10 (กำลังจะไปด่าน 11 หรือจบเกม) ให้วิ่งไปหน้า EndingScene แทน
+        if (currentStage >= 10)
+        {
+            Debug.Log("Game Completed! Loading Ending Scene...");
+            SceneManager.LoadScene("EndingScene");
+            return;
+        }
+
         // 2. เพิ่มค่าด่านปัจจุบันขึ้น 1
         currentStage++;
 
@@ -198,7 +206,7 @@ public class GameManager : MonoBehaviour
         else
         {
             Debug.LogWarning("ไม่พบ Scene ชื่อ " + nextSceneName + " อาจจะเป็นด่านสุดท้ายแล้ว!");
-            SceneManager.LoadScene("MainMenu"); // ถ้าหมดด่านแล้วให้กลับหน้าเมนูหลัก
+            SceneManager.LoadScene("EndingScene"); // ถ้าหมดด่านแล้วให้เข้า EndingScene
         }
     }
 
